@@ -2,7 +2,7 @@
 export function POST(req, res) {
 
 
-  console.log(`New event received of type: ${req.body.type}`)
+  console.log(`New event received of type: ${req.type}`)
 
   // Array that holds the different types of events we're expecting and the corresponding handler
   const handlerPaths = {
@@ -12,10 +12,10 @@ export function POST(req, res) {
     'OpportunityStatusUpdate': '../../utils/opportunity-status'
   };
   
-  const handlerPath = handlerPaths[req.body.type];
+  const handlerPath = handlerPaths[req.type];
   
-  handlerPath ? processEvent(handlerPath, req.body)
-    : console.log(`No handler found for type: ${req.body.type}`);
+  handlerPath ? processEvent(handlerPath, req)
+    : console.log(`No handler found for type: ${req.type}`);
 
   res.status(200).json({ text: "Got it bro I'll take it from here" });
   
