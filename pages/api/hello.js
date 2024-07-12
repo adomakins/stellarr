@@ -5,4 +5,4 @@ export default function helloWorld(req, res) {
 
     res.status(200).json({ text: "Got it bro I'll take it from here" });
   
-  }
+}
