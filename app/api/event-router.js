@@ -1,5 +1,5 @@
-// 
-export default function eventRouter(req) {
+
+export default function eventRouter(req, res) {
 
 
     console.log(`New event received of type: ${req.body.type}`)
