@@ -11,6 +11,7 @@ export async function POST(req) {
   };
 
   const handlerFile = handlerPaths[body.type];
+  
   if (handlerFile) {
     await processEvent(handlerFile, body);
   } else {
@@ -18,6 +19,7 @@ export async function POST(req) {
   }
 
   return new Response("Processed", { status: 200 });
+  
 }
 
 async function processEvent(handlerFile, reqBody) {
