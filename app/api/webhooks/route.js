@@ -1,6 +1,4 @@
 
-import messageEvent from '@/utils/message-event.js';
-
 export async function POST(req) {
   const body = await req.json();
   console.log(`New event received of type: ${body.type}`);
@@ -26,10 +24,8 @@ async function processEvent(handlerFile, reqBody) {
 
   console.log(`Calling dynamic function for type: ${reqBody.type}`);
 
-  // const module = await import(`../../utils/message-event.js`);
+  const module = await import(`@/utils/${handlerFile}`);
 
-  // await module.default(reqBody);
-
-  await messageEvent(reqBody);
+  await module.default(reqBody);
 
 }
