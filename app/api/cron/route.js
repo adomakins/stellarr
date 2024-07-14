@@ -1,70 +1,90 @@
-
-import { sql } from '@vercel/postgres';
+import { sql } from "@vercel/postgres";
+import getAppInfo from "@app/api/utilities/apps/apps.js";
 
 export async function GET() {
+  console.log("Refreshing agency and location access tokens");
 
-    console.log('Refreshing agency and location access tokens');
+  const interval = 5;
+  // Checks for tokens expiring in the next (interval) hours
 
-    const rate = 4; // Performs a refresh every 4 hours between 1pm and 1am UTC
-    const margin = 30; // Safety margin of 30 minutes
+  const threshold = Math.floor(Date.now() / 1000) + interval * 60 * 60;
 
-    const threshold = new Date(Date.now() + (rate * 60 + margin) * 60 * 1000).toISOString();
-    await refreshAgencies(threshold);
-    await refreshLocations(threshold);
+  await refreshTokens("agencies", threshold);
+  await refreshTokens("locations", threshold);
 
-    return new Response('Token refresh process completed', { status: 200 });
+  // await refreshLocations(threshold);
+  // Not implemented yet
 
+  return new Response("Token refresh process completed", { status: 200 });
 }
 
-async function refreshAgencies(threshold) {
+async function refreshTokens(table, threshold) {
+  // Get a list of records to refresh
+  const records = await sql`
+      SELECT id, installations
+      FROM ${sql(table)}
+      WHERE EXISTS (
+          SELECT 1
+          FROM jsonb_object_keys(installations) AS app
+          WHERE (installations->app->>'expires_at')::bigint <= extract(epoch from ${threshold}::timestamp)
+      )
+  `;
 
+  console.log(`Found ${records.rowCount} ${table} to refresh`);
 
-    // Get a list of agencies to refresh
-    const agencies = await sql`
-        SELECT id, access, refresh
-        FROM agencies
-        WHERE
-            config->>'installed' = 'true'
-            AND expires <= ${threshold}
-    `;
-
-    console.log(`Found ${agencies.length} agencies to refresh`);
-
-    for (const agency of agencies) {
-
-        // Get new access and refresh tokens using fetch
+  for (const record of records.rows) {
+    const installations = record.installations;
+    for (const [app, installation] of Object.entries(installations)) {
+      if (installation.expires_at <= threshold) {
+        const appInfo = await getAppInfo(app);
         try {
-            
-            const url = 'https://services.leadconnectorhq.com/oauth/token';
-            const options = {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'Accept': 'application/json',
-                },
-                body: new URLSearchParams({
-                client_id: app,
-                client_secret: process.env[`APP_SECRET_${name}`],
-                grant_type: 'authorization_code',
-                code: code,
-                user_type: 'Company',
-                })
-            };
+          const url = "https://services.leadconnectorhq.com/oauth/token";
+          const options = {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/x-www-form-urlencoded",
+              Accept: "application/json",
+            },
+            body: new URLSearchParams({
+              client_id: app,
+              client_secret: appInfo.secret,
+              grant_type: "refresh_token",
+              refresh_token: installation.refresh_token,
+            }),
+          };
 
+          const response = await fetch(url, options);
+          const newCredentials = await response.json();
+          const newExpiration = Math.floor(
+            (Date.now() + newCredentials.expires_in * 1000) / 1000,
+          ); // Convert to seconds
 
-            const response = await fetch(url, options);
-            credentials = await response.json();
-            console.log(`Credentials obtained of type: ${credentials.userType}`);
-            // Implement your token refresh logic here
-            // Example:
-            // const newTokens = await refreshTokenForAgency(agency.refresh);
-            // await updateAgencyTokens(agency.id, newTokens);
-            console.log(`Refreshed tokens for agency ${agency.id}`);
+          // Update the database with new tokens
+          await sql`
+                UPDATE ${sql(table)}
+                SET installations = jsonb_set(
+                  installations,
+                  array[${app}],
+                  jsonb_build_object(
+                    'access_token', ${newCredentials.access_token},
+                    'refresh_token', ${newCredentials.refresh_token},
+                    'expires_at', ${newExpiration},
+                    'status', 'installed'
+                  )
+                )
+                WHERE id = ${record.id}
+              `;
+
+          console.log(
+            `Refreshed tokens for record ${record.id}, app ${appInfo.alias}`,
+          );
         } catch (error) {
-            console.error(`Failed to refresh tokens for agency ${agency.id}:`, error);
+          console.error(
+            `Failed to refresh tokens for record in ${table} - ${record.id}, app ${appInfo.alias}:`,
+            error,
+          );
         }
-        // Write new access and refresh tokens to database
+      }
     }
-
-
+  }
 }
