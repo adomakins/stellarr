@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server';
 import { redirect } from 'next/navigation';
-import handleInstall from '@/app/api/utilities/installations.js';
+import handleInstall from '@/app/api/utilities/handlers/installations.js';
 
 export async function GET(req) {
 

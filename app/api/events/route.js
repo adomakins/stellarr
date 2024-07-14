@@ -34,7 +34,7 @@ async function processEvent(handlerFile, reqBody) {
 
   console.log(`Calling dynamic function for type: ${reqBody.type}`);
 
-  const module = await import(`@/app/api/utils/handlers/${handlerFile}`);
+  const module = await import(`@/app/api/utilities/handlers/${handlerFile}`);
 
   await module.default(reqBody);
 
