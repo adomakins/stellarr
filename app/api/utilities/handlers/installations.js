@@ -66,7 +66,7 @@ async function installCompany(name, app, code) {
     }
 
     // Second API call to get company info
-    url = 'https://services.leadconnectorhq.com/companies/ve9EPM428h8vShlRW1KT';
+    url = `https://services.leadconnectorhq.com/companies/${credentials.companyId}`;
     options = {
         method: 'GET',
         headers: {
