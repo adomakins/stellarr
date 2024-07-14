@@ -13,13 +13,13 @@ export default async function (app, code) {
         'advertising_example_app': 'ADVERTISING'
     }[app];
 
-    let id;
+    // const projects = await (await fetch('assets/projects/projects.json')).json();
 
-    console.log(`name = ${name}`);
+    let company;
 
     try {
         console.log(`Running installCompany(${name}, ${app}, ${code})`)
-        id = await installCompany(name, app, code);
+        company = await installCompany(name, app, code);
         // Get auth tokens using auth code
         // Get company info using auth tokens
         // Add company info to database
@@ -27,6 +27,10 @@ export default async function (app, code) {
         console.error(`Error in handleInstall: ${error.message}`);
         throw error;
     }
+
+    // company should contain info about who installed it, use this to create user profile
+
+    return { status: 'success', id: company.id, email: company.email };
 
 }
 
@@ -78,27 +82,25 @@ async function installCompany(name, app, code) {
 
     try {
         const response = await fetch(url, options);
-        company = await response.json().company;
+        company = (await response.json()).company;
         console.log(`Company info obtained for: ${company.name}`);
     } catch (error) {
         console.error(error);
         throw error;
     }
 
-    console.log(`company: ${JSON.stringify(company)}`);
-
     // Finally write company info to database
     try {
         await sql`
             INSERT INTO agencies (
-                id, access, refresh, config, name, logo, email, phone, website, info_json )
+                id, access, refresh, expires, config, name, logo, email, phone, website, info_json )
             VALUES (
                 ${company.id},
                 ${credentials.access_token},
                 ${credentials.refresh_token},
                 ${JSON.stringify({version: name, installed: true})},
                 ${company.name},
-                ${company.logo},
+                ${company.logoUrl},
                 ${company.email},
                 ${company.phone},
                 ${company.website},
@@ -106,11 +108,38 @@ async function installCompany(name, app, code) {
             );
         `;
     } catch (error) {
-        console.error(error);
-        throw error;
+        if (error instanceof Error && error.message.includes('duplicate key value violates unique constraint "agencies_pkey"')) {
+            console.log('This agency already exists in the database.');
+            // Handle the duplicate key error here
+            // For example, you might want to update the existing record instead of inserting a new one
+            try {
+                await sql`
+                UPDATE agencies
+                SET 
+                    access = ${credentials.access_token},
+                    refresh = ${credentials.refresh_token},
+                    expires = ${new Date(Date.now() + credentials.expires_in * 1000).toISOString()},
+                    config = ${JSON.stringify({version: name, installed: true})},
+                    name = ${company.name},
+                    logo = ${company.logo},
+                    email = ${company.email},
+                    phone = ${company.phone},
+                    website = ${company.website},
+                    info_json = ${JSON.stringify(company)}
+                WHERE id = ${company.id};
+                `;
+                console.log('Existing agency record updated.');
+            } catch (updateError) {
+                console.error('Error updating existing agency:', updateError);
+                throw updateError;
+            }
+        } else {
+            console.error('Error inserting into database:', error);
+            throw error;
+        }
     }
 
-    return company.id;
+    return ({ id: company.id, email: company.email });
 
 }
 
