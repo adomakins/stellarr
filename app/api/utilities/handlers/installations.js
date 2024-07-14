@@ -1,10 +1,10 @@
 
 import { sql } from '@vercel/postgres';
 
-export default async function handleInstall(app, code) {
+export default async function (app, code) {
 
-    console.log(`/utils/install-complete.js receieved type: ${reqBody.type}`);
-    await new Promise(resolve => setTimeout(resolve, 5000));
+    console.log(`/utils/install-complete.js receieved}`);
+    // await new Promise(resolve => setTimeout(resolve, 5000));
 
     const name = {
         'triggers_example_app': 'TRIGGERS',
@@ -15,9 +15,11 @@ export default async function handleInstall(app, code) {
 
     let id;
 
+    console.log(`name = ${name}`);
+
     try {
-        console.log(`Running installCompany(${name}, ${id}, ${code})`)
-        id = await installCompany(name, id, code);
+        console.log(`Running installCompany(${name}, ${app}, ${code})`)
+        id = await installCompany(name, app, code);
         // Get auth tokens using auth code
         // Get company info using auth tokens
         // Add company info to database
@@ -28,7 +30,7 @@ export default async function handleInstall(app, code) {
 
 }
 
-async function installCompany(name, id, code) {
+async function installCompany(name, app, code) {
 
     console.log('App Secret:', process.env[`APP_SECRET_${name}`]);
 
@@ -46,7 +48,7 @@ async function installCompany(name, id, code) {
             'Accept': 'application/json',
         },
         body: new URLSearchParams({
-        client_id: id,
+        client_id: app,
         client_secret: process.env[`APP_SECRET_${name}`],
         grant_type: 'authorization_code',
         code: code,
@@ -76,12 +78,14 @@ async function installCompany(name, id, code) {
 
     try {
         const response = await fetch(url, options);
-        company = await response.json().company;
+        company = await response.json();
         console.log(`Company info obtained for: ${company.name}`);
     } catch (error) {
         console.error(error);
         throw error;
     }
+
+    console.log(JSON.stringify(company));
 
     // Finally write company info to database
     try {
