@@ -11,6 +11,7 @@ export default async function ConfirmationPage({ searchParams }) {
 
   const { id, code } = searchParams;
   // id = app_id, code = auth_code
+  
 
   let message = "If you're seeing this message... something ain't right";
 
