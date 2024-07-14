@@ -78,7 +78,7 @@ async function installCompany(name, app, code) {
 
     try {
         const response = await fetch(url, options);
-        company = await response.json().company;
+        company = await response.json();
         console.log(`Company info obtained for: ${company.name}`);
     } catch (error) {
         console.error(error);
