@@ -20,15 +20,17 @@ export async function GET() {
 
 async function refreshTokens(table, threshold) {
   // Get a list of records to refresh
-  const records = await sql`
+  let query = `
       SELECT id, installations
-      FROM ${table}
+      FROM "${table}"
       WHERE EXISTS (
           SELECT 1
           FROM jsonb_object_keys(installations) AS app
-          WHERE (installations->app->>'expires_at')::bigint <= extract(epoch from ${threshold}::timestamp)
+          WHERE (installations->app->>'expires_at')::bigint <= ${threshold}
       )
   `;
+
+  const records = await sql.query(query);
 
   console.log(`Found ${records.rowCount} ${table} to refresh`);
 
