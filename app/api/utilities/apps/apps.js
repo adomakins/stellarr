@@ -1,4 +1,4 @@
-import apps from "/apps.json";
+import apps from "@/app/api/utilities/apps/apps.json";
 
 export default async function getAppInfo(id) {
   const appInfo = apps[id];

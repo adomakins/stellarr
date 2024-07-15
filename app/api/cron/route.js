@@ -1,5 +1,5 @@
 import { sql } from "@vercel/postgres";
-import getAppInfo from "@app/api/utilities/apps/apps.js";
+import getAppInfo from "@/app/api/utilities/apps/apps.js";
 
 export async function GET() {
   console.log("Refreshing agency and location access tokens");
