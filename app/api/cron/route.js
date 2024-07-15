@@ -22,7 +22,7 @@ async function refreshTokens(table, threshold) {
   // Get a list of records to refresh
   const records = await sql`
       SELECT id, installations
-      FROM ${sql(table)}
+      FROM ${table}
       WHERE EXISTS (
           SELECT 1
           FROM jsonb_object_keys(installations) AS app
@@ -61,7 +61,7 @@ async function refreshTokens(table, threshold) {
 
           // Update the database with new tokens
           await sql`
-                UPDATE ${sql(table)}
+                UPDATE ${table}
                 SET installations = jsonb_set(
                   installations,
                   array[${app}],
