@@ -1,5 +1,5 @@
 import { sql } from "@vercel/postgres";
-import getAppInfo from "@app/api/utilities/apps/apps.js";
+import getAppInfo from "@/app/api/utilities/apps/apps.js";
 
 export default async function (app, code) {
   console.log(`/utils/install-complete.js receieved}`);
